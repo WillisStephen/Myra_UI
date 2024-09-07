@@ -1564,5 +1564,11 @@ namespace Myra.Graphics2D.UI
 			PasswordField = textBox.PasswordField;
 			TextVerticalAlignment = textBox.TextVerticalAlignment;
 		}
+
+  		public void SetSelection(int start, int end)
+		{
+		        SelectStart = start;
+			SelectEnd = end;
+		}
 	}
 }
