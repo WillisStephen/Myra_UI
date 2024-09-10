@@ -129,9 +129,24 @@ namespace Myra.Graphics2D.UI
 			}
 		}
 
-		private int Length => _text.Length();
+        public int Length
+        {
+            get
+            {
+				return _text.Length();
+            }
+        }
 
-		private bool InsertMode { get; set; }
+        public int LengthWithOffset
+        {
+            get
+            {
+				//We offset the first line always by 17, rest of it can be figured via the _offsetLastValue
+                return _richTextLayout.Text.Length() - (_richTextLayout.Lines.Count > 1 ? (17 + _offsetLastValue) : 0);
+            }
+        }
+
+        private bool InsertMode { get; set; }
 
 		[Category("Appearance")]
 		public SpriteFontBase Font
@@ -481,7 +496,8 @@ namespace Myra.Graphics2D.UI
 
 		private bool Paste(string text)
 		{
-			text = Process(text);
+            text = text.Replace("\n", " ").Replace("\r", " ");
+            text = Process(text);
 
 			DeleteSelection();
 			if (InsertChars(CursorPosition, text))
@@ -645,7 +661,8 @@ namespace Myra.Graphics2D.UI
 		{
 			// Select all
 			SelectStart = 0;
-			SelectEnd = Length;
+			//SelectEnd = Length;
+			SelectEnd = LengthWithOffset;
 		}
 
 		public override void OnKeyDown(Keys k)
