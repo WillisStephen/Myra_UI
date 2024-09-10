@@ -8,6 +8,12 @@ using Myra.Graphics2D.UI.TextEdit;
 using FontStashSharp;
 using FontStashSharp.RichText;
 using Myra.Events;
+using System.Diagnostics;
+using System.Collections.Generic;
+using System.Text.RegularExpressions;
+
+
+
 
 #if MONOGAME || FNA
 using Microsoft.Xna.Framework;
@@ -35,7 +41,7 @@ namespace Myra.Graphics2D.UI
 		private readonly RichTextLayout _richTextLayout = new RichTextLayout
 		{
 			CalculateGlyphs = true,
-			SupportsCommands = false
+			SupportsCommands = true
 		};
 
 		private Point? _lastCursorPosition;
@@ -49,6 +55,9 @@ namespace Myra.Graphics2D.UI
 
 		private readonly UndoRedoStack UndoStack = new UndoRedoStack();
 		private readonly UndoRedoStack RedoStack = new UndoRedoStack();
+
+		public List<int> _offset = new List<int>();
+		private int _offsetLastValue = 0;
 
 		[Category("Appearance")]
 		[DefaultValue(0)]
@@ -337,6 +346,13 @@ namespace Myra.Graphics2D.UI
 
 			MouseCursor = MouseCursorType.IBeam;
 		}
+
+		public RichTextLayout GetLayout() => _richTextLayout;
+
+		public List<TextLine> GetLines()
+		{
+			return _richTextLayout.Lines;
+		}
 		
 		private void DeleteChars(int pos, int l)
 		{
@@ -578,8 +594,8 @@ namespace Myra.Graphics2D.UI
 		}
 
 		private void UpdateSelection()
-		{
-			SelectEnd = CursorPosition;
+        {
+            SelectEnd = CursorPosition;
 		}
 
 		private void UpdateSelectionIfShiftDown()
@@ -862,8 +878,12 @@ namespace Myra.Graphics2D.UI
 				var selectStart = Math.Min(SelectStart, SelectEnd);
 				var selectEnd = Math.Max(SelectStart, SelectEnd);
 
-				var clipboardText = _richTextLayout.Text.Substring(selectStart, selectEnd - selectStart);
-				try
+                string pattern = @"/c\[#FF[0-9A-Fa-f]{6}\]";
+                string result = Regex.Replace(_richTextLayout.Text, pattern, string.Empty);
+                result = Regex.Replace(result, @"/cd", string.Empty);
+
+                var clipboardText = result.Substring(selectStart, selectEnd - selectStart);
+                try
 				{
 					Clipboard.SetText(clipboardText);
 				}
@@ -885,8 +905,13 @@ namespace Myra.Graphics2D.UI
 			return value;
 		}
 
+		int singleOffset = 0;
+		int multiOffset = 0;
+
 		private bool SetText(string value, bool byUser)
 		{
+			int prevCount = _richTextLayout.Lines.Count;
+
 			value = Process(value);
 			if (value == _text)
 			{
@@ -908,7 +933,37 @@ namespace Myra.Graphics2D.UI
 
 			_text = value;
 
-			UpdateRichTextLayout();
+            UpdateRichTextLayout();
+
+			int countDiff = _richTextLayout.Lines.Count - prevCount;
+
+			if (prevCount == 0)
+            {
+                _offset.Add(_offsetLastValue);
+
+                for (int i = 1; i < countDiff - 1; i++)
+                {
+                    _offset.Add(13);
+                }
+            }
+			else
+            {
+                for (int i = 0; i < countDiff; i++)
+                {
+                    if (i == 0)
+					{
+                        _offsetLastValue += 16;
+                        _offset.Add(_offsetLastValue);
+                    }
+                    else
+                    {
+                        _offsetLastValue += 13;
+                        _offset.Add(_offsetLastValue);
+                        _offsetLastValue -= 13;
+                    }
+                }
+            }
+
 
 			if (!byUser)
 			{
@@ -1149,12 +1204,34 @@ namespace Myra.Graphics2D.UI
 			}
 
 			var line = _richTextLayout.GetLineByY(mousePos.Y);
+			var lineIndex = _richTextLayout.Lines.IndexOf(line);
+
 			if (line != null)
 			{
-				var glyphIndex = line.GetGlyphIndexByX(mousePos.X);
+				var glyphIndex = GetGlyphIndexByX(mousePos.X, line.Chunks);
 				if (glyphIndex != null)
 				{
-					UserSetCursorPosition(line.TextStartIndex + glyphIndex.Value);
+					if (glyphIndex >= 0)
+					{
+                        UserSetCursorPosition(line.TextStartIndex - (_offset[lineIndex]) + glyphIndex.Value);
+                        //UserSetCursorPosition(line.TextStartIndex + glyphIndex.Value);
+                    }
+					else
+                    {
+                        TextChunk mainChunk = (TextChunk)line.Chunks[0];
+                        UserSetCursorPosition(line.TextStartIndex - (_offset[lineIndex]) + mainChunk.Text.Length);
+      //                  if (line.TextStartIndex != 0)
+      //                  {
+      //                      TextChunk mainChunk = (TextChunk)line.Chunks[0];
+      //                      UserSetCursorPosition(line.TextStartIndex - (_offset[lineIndex]) + mainChunk.Text.Length);
+      //                  }
+						//else
+      //                  {
+      //                      TextChunk mainChunk = (TextChunk)line.Chunks[0];
+      //                      UserSetCursorPosition(line.TextStartIndex - (_offset[lineIndex]) + mainChunk.Text.Length);
+      //                  }
+                    }
+
 					if (_isTouchDown || Desktop.IsShiftDown)
 					{
 						UpdateSelection();
@@ -1167,7 +1244,37 @@ namespace Myra.Graphics2D.UI
 			}
 		}
 
-		private void DesktopTouchUp(object sender, EventArgs args)
+        public int? GetGlyphIndexByX(int startX, List<BaseChunk> Chunks)
+        {
+            if (Chunks.Count == 0)
+            {
+                return null;
+            }
+
+            int num = startX;
+            for (int i = 0; i < Chunks.Count; i++)
+            {
+                TextChunk textChunk = (TextChunk)Chunks[i];
+                if (num >= textChunk.Size.X)
+                {
+                    num -= textChunk.Size.X;
+                    continue;
+                }
+
+                if (textChunk.Glyphs.Count > 0 && num < textChunk.Glyphs[0].Bounds.X)
+                {
+                    return 0;
+                }
+
+                return textChunk.GetGlyphIndexByX(num);
+            }
+
+            num = startX;
+			//return ((TextChunk)Chunks[Chunks.Count - 1]).GetGlyphIndexByX(startX);
+			return -1;
+        }
+
+        private void DesktopTouchUp(object sender, EventArgs args)
 		{
 			_isTouchDown = false;
 		}
@@ -1343,7 +1450,19 @@ namespace Myra.Graphics2D.UI
 
 				var line = _richTextLayout.Lines[startGlyph.Value.TextChunk.LineIndex];
 
-				if (selectEnd < line.TextStartIndex + line.Count)
+				//if (selectEnd < line.TextStartIndex + line.Count)
+				//{
+				//	var endPosition = GetRenderPositionByIndex(selectEnd);
+
+				//	Selection.Draw(context,
+				//		new Rectangle(startPosition.X - _internalScrolling.X,
+				//			startPosition.Y - _internalScrolling.Y,
+				//			endPosition.X - startPosition.X,
+				//			lineHeight));
+
+				//	break;
+				//}
+				if (selectEnd < line.TextStartIndex - (_offset[lineIndex]) + line.Count)
 				{
 					var endPosition = GetRenderPositionByIndex(selectEnd);
 
@@ -1368,7 +1487,7 @@ namespace Myra.Graphics2D.UI
 					break;
 				}
 
-				i = _richTextLayout.Lines[lineIndex].TextStartIndex;
+				i = _richTextLayout.Lines[lineIndex].TextStartIndex - (_offset[lineIndex]);
 			}
 		}
 
@@ -1567,7 +1686,7 @@ namespace Myra.Graphics2D.UI
 
   		public void SetSelection(int start, int end)
 		{
-		        SelectStart = start;
+			SelectStart = start;
 			SelectEnd = end;
 		}
 	}
