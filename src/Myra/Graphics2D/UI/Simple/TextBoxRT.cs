@@ -30,7 +30,7 @@ using Color = FontStashSharp.FSColor;
 
 namespace Myra.Graphics2D.UI
 {
-	public class TextBox : Widget
+	public class TextBoxRT : Widget
 	{
 		private const int CursorUpdateDelayInMs = 30;
 
@@ -41,7 +41,7 @@ namespace Myra.Graphics2D.UI
 		private readonly RichTextLayout _richTextLayout = new RichTextLayout
 		{
 			CalculateGlyphs = true,
-			SupportsCommands = false
+			SupportsCommands = true
 		};
 
 		private Point? _lastCursorPosition;
@@ -347,7 +347,7 @@ namespace Myra.Graphics2D.UI
 		
 		public event EventHandler CursorPositionChanged;
 
-		public TextBox(string styleName = Stylesheet.DefaultStyleName)
+		public TextBoxRT(string styleName = Stylesheet.DefaultStyleName)
 		{
 			AcceptsKeyboardFocus = true;
 
@@ -500,15 +500,15 @@ namespace Myra.Graphics2D.UI
             text = text.Replace("\n", " ").Replace("\r", " ");
             text = Process(text);
 
-			if (MaxLength > 0)
-			{
-				if (text.Length > MaxLength)
-				{
+            if (MaxLength > 0)
+            {
+                if (text.Length > MaxLength)
+                {
                     text = text.Substring(0, MaxLength);
                 }
-			}
+            }
 
-			DeleteSelection();
+            DeleteSelection();
 			if (InsertChars(CursorPosition, text))
 			{
 				UndoStack.MakeInsert(CursorPosition, text.Length());
