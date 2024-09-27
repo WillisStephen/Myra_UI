@@ -347,6 +347,8 @@ namespace Myra.Graphics2D.UI
 		
 		public event EventHandler CursorPositionChanged;
 
+		public event EventHandler LinesAdded;
+
 		public TextBoxRT(string styleName = Stylesheet.DefaultStyleName)
 		{
 			AcceptsKeyboardFocus = true;
@@ -976,8 +978,8 @@ namespace Myra.Graphics2D.UI
             {
                 for (int i = 0; i < countDiff; i++)
                 {
-					if (prevCount > 12)
-						Height += 20;
+					if (prevCount + countDiff > 12)
+						LinesAdded?.Invoke(countDiff);
 
                     if (i == 0)
 					{

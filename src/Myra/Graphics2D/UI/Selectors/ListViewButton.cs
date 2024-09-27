@@ -1,6 +1,6 @@
 ﻿namespace Myra.Graphics2D.UI
 {
-	internal class ListViewButton : ToggleButton
+	public class ListViewButton : ToggleButton
 	{
 		public ListViewButton() : base(null)
 		{

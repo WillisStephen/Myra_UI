@@ -3,6 +3,7 @@ using Myra.Graphics2D.UI.Styles;
 using System;
 using System.Collections.ObjectModel;
 using System.Xml.Serialization;
+using Myra.Graphics2D.Brushes;
 
 namespace Myra.Graphics2D.UI
 {
@@ -21,6 +22,7 @@ namespace Myra.Graphics2D.UI
 		private TabSelectorPosition _selectorPosition;
 		private ObservableCollection<Proportion> _buttonProportions;
 		private ObservableCollection<Proportion> _contentProportions;
+
 
 		[Browsable(false)]
 		[XmlIgnore]
@@ -173,7 +175,7 @@ namespace Myra.Graphics2D.UI
 			InternalChild.Widgets.Add(_gridButtons);
 			InternalChild.Widgets.Add(_panelContent);
 
-			ClipToBounds = true;
+            ClipToBounds = true;
 
 			SetStyle(styleName);
 		}

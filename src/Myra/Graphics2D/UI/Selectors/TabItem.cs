@@ -5,6 +5,10 @@ using System.Xml.Serialization;
 using Myra.Attributes;
 using Myra.Utility;
 using Myra.MML;
+using Myra.Graphics2D.Brushes;
+using FontStashSharp;
+
+
 
 #if MONOGAME || FNA
 using Microsoft.Xna.Framework;
@@ -23,7 +27,57 @@ namespace Myra.Graphics2D.UI
 		private Color? _color;
 		private ListViewButton _button;
 
-		public string Text
+		public IBrush Border
+		{
+			get { return _button.Border; }
+			set
+            {
+                if (_button != null)
+                    _button.Border = value;
+			}
+		}
+
+        public Thickness BorderThickness
+        {
+            get { return _button.BorderThickness; }
+            set
+            {
+                if (_button != null)
+                    _button.BorderThickness = value;
+            }
+        }
+
+        public Thickness Padding
+        {
+            get { return _button.Padding; }
+            set
+            {
+                if (_button != null)
+                    _button.Padding = value;
+            }
+        }
+
+        public Thickness Margin
+        {
+            get { return _button.Margin; }
+            set
+            {
+                if (_button != null)
+                    _button.Margin = value;
+            }
+        }
+
+		public IBrush PressedBackground
+        {
+            get { return _button.PressedBackground; }
+            set
+            {
+                if (_button != null)
+                    _button.PressedBackground = value;
+            }
+        }
+
+        public string Text
 		{
 			get
 			{
@@ -39,6 +93,14 @@ namespace Myra.Graphics2D.UI
 
 				_text = value;
 				FireChanged();
+			}
+		}
+
+		public void SetFont(DynamicSpriteFont fontSystem)
+		{
+			if (_button.Content is Label label)
+			{
+				label.Font = fontSystem;
 			}
 		}
 
@@ -131,7 +193,7 @@ namespace Myra.Graphics2D.UI
 		[XmlIgnore]
 		private HorizontalStackPanel Panel => (HorizontalStackPanel)Button.Content;
 
-		[Browsable(false)]
+        [Browsable(false)]
 		[XmlIgnore]
 		internal Image ImageWidget => (Image)Panel.Widgets[0];
 

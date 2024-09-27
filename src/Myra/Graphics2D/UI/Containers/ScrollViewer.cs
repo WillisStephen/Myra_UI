@@ -34,7 +34,11 @@ namespace Myra.Graphics2D.UI
 		[XmlIgnore]
 		internal int HorizontalThumbHeight => (_horizontalScrollingOn && ShowHorizontalScrollBar) ? _horizontalScrollbarThumb.Height : 0;
 
-		[Browsable(false)]
+        public event EventHandler ScrollMaximumChanged;
+		private Point _previousScrollMaximum = Mathematics.PointZero;
+		public bool OverrideArrange = true;
+
+        [Browsable(false)]
 		[XmlIgnore]
 		public Point ScrollMaximum
 		{
@@ -58,6 +62,12 @@ namespace Myra.Graphics2D.UI
 				{
 					result.Y = 0;
 				}
+
+				if (_previousScrollMaximum != result)
+                {
+                    _previousScrollMaximum = result;
+					ScrollMaximumChanged?.Invoke();
+                }
 
 				return result;
 
@@ -309,6 +319,11 @@ namespace Myra.Graphics2D.UI
 
 			SetStyle(styleName);
 		}
+
+		public void UpdateScrollPosition(Point newPos)
+        {
+            ScrollPosition = newPos;
+        }
 
 		private void MoveThumb(int delta)
 		{
@@ -593,17 +608,20 @@ namespace Myra.Graphics2D.UI
 
 			Content.Arrange(bounds);
 
-			// Fit scroll position in new maximums
-			var scrollPosition = ScrollPosition;
-			if (scrollPosition.X > ScrollMaximum.X)
-			{
-				scrollPosition.X = ScrollMaximum.X;
-			}
-			if (scrollPosition.Y > ScrollMaximum.Y)
-			{
-				scrollPosition.Y = ScrollMaximum.Y;
-			}
-			ScrollPosition = scrollPosition;
+			if (OverrideArrange)
+            {
+                // fit scroll position in new maximums
+                var scrollposition = ScrollPosition;
+                if (scrollposition.X > ScrollMaximum.X)
+                {
+                    scrollposition.X = ScrollMaximum.X;
+                }
+                if (scrollposition.Y > ScrollMaximum.Y)
+                {
+                    scrollposition.Y = ScrollMaximum.Y;
+                }
+                ScrollPosition = scrollposition;
+            }
 		}
 
 		public void ResetScroll()
